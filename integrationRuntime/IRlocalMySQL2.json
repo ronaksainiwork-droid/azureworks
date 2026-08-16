@@ -1,0 +1,6 @@
+{
+	"name": "IRlocalMySQL2",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

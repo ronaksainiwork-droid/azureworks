@@ -1,0 +1,192 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_json_source",
+						"type": "DatasetReference"
+					},
+					"name": "srclandingjson"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_patient_sink_csv",
+						"type": "DatasetReference"
+					},
+					"name": "sinkpatientcsv",
+					"description": "Export data to ds_csv_sink_1_patient"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_csv_landing",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "flattenentry"
+				},
+				{
+					"name": "filterpatient"
+				},
+				{
+					"name": "selectpatient",
+					"description": "Renaming filterpatient to selectpatient with columns 'patient_id , gender, birth_date'"
+				},
+				{
+					"name": "derivepatientage",
+					"description": "Creating/updating the columns 'patient_id , gender, birth_date, age'"
+				},
+				{
+					"name": "derivepatientageband",
+					"description": "Creating/updating the columns 'patient_id , gender, birth_date, age, age_band'"
+				},
+				{
+					"name": "filterclaim"
+				},
+				{
+					"name": "selectclaim"
+				},
+				{
+					"name": "derivedClaim"
+				},
+				{
+					"name": "joinpatientclaim"
+				},
+				{
+					"name": "deriveinsurancetier"
+				},
+				{
+					"name": "filterEob"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "derivedEob"
+				},
+				{
+					"name": "join1"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     fileName as string ('Abe604_Schmidt332_ccfc4db2-2026-7adb-3db0-33f3828140bb.json')",
+				"}",
+				"source(output(",
+				"          entry as (fullUrl as string, request as (method as string, url as string), resource as (abatementDateTime as string, activity as (detail as (code as (coding as (code as long, display as string, system as string)[], text as string), location as (display as string), status as string))[], address as (city as string, country as string, extension as (extension as (url as string, valueDecimal as double)[], url as string)[], line as string[], postalCode as short, state as string)[], addresses as (reference as string)[], agent as (onBehalfOf as (display as string, reference as string), type as (coding as (code as string, display as string, system as string)[], text as string), who as (display as string, reference as string))[], author as (display as string, reference as string)[], authoredOn as string, billablePeriod as (end as string, start as string), birthDate as date, careTeam as (provider as (reference as string), reference as string, role as (coding as (code as string, display as string, system as string)[]), sequence as boolean)[], category as (coding as (code as string, display as string, system as string)[], text as string)[], claim as (reference as string), class as (code as string, system as string), clinicalStatus as (coding as (code as string, system as string)[]), code as (coding as (code as string, display as string, system as string)[], text as string), communication as (language as (coding as (code as string, display as string, system as string)[], text as string))[], component as (code as (coding as (code as string, display as string, system as string)[], text as string), valueCodeableConcept as (coding as (code as string, display as string, system as string)[], text as string), valueQuantity as (code as string, system as string, unit as string, value as double), valueString as string)[], contained as (beneficiary as (reference as string), id as string, intent as string, payor as (display as string)[], performer as (reference as string)[], requester as (reference as string), resourceType as string, status as string, subject as (reference as string), type as (text as string))[], content as (attachment as (contentType as string, data as string), format as (code as string, display as string, system as string))[], context as (encounter as (reference as string)[], period as (end as string, start as string)), created as string, custodian as (display as string, reference as string), date as string, diagnosis as (diagnosisReference as (reference as string), sequence as short, type as (coding as (code as string, system as string)[])[])[], dosageInstruction as (additionalInstruction as (coding as (code as integer, display as string, system as string)[], text as string)[], asNeededBoolean as boolean, doseAndRate as (doseQuantity as (value as double), type as (coding as (code as string, display as string, system as string)[]))[], sequence as boolean, text as string, timing as (repeat as (frequency as short, period as double, periodUnit as string)))[], effectiveDateTime as string, encounter as (reference as string), extension as (extension as (url as string, valueCoding as (code as string, display as string, system as string), valueString as string)[], url as string, valueAddress as (city as string, country as string, state as string), valueCode as string, valueDecimal as double, valueString as string)[], facility as (display as string, reference as string), gender as string, id as string, identifier as (system as string, type as (coding as (code as string, display as string, system as string)[], text as string), use as string, value as string)[], insurance as (coverage as (display as string, reference as string), focal as boolean, sequence as boolean)[], insurer as (display as string), intent as string, issued as string, item as (adjudication as (amount as (currency as string, value as double), category as (coding as (code as string, display as string, system as string)[]))[], category as (coding as (code as boolean, display as string, system as string)[]), diagnosisSequence as short[], encounter as (reference as string)[], informationSequence as short[], locationCodeableConcept as (coding as (code as short, display as string, system as string)[]), net as (currency as string, value as double), procedureSequence as short[], productOrService as (coding as (code as long, display as string, system as string)[], text as string), sequence as short, servicedPeriod as (end as string, start as string))[], location as string, managingOrganization as (display as string, reference as string)[], maritalStatus as (coding as (code as string, display as string, system as string)[], text as string), medicationCodeableConcept as (coding as (code as integer, display as string, system as string)[], text as string), meta as (profile as string[]), multipleBirthBoolean as boolean, name as (family as string, given as string[], prefix as string[], use as string)[], occurrenceDateTime as string, onsetDateTime as string, outcome as string, participant as (individual as (display as string, reference as string), member as (display as string, reference as string), period as (end as string, start as string), role as (coding as (code as integer, display as string, system as string)[], text as string)[], type as (coding as (code as string, display as string, system as string)[], text as string)[])[], patient as (display as string, reference as string), payment as (amount as (currency as string, value as double)), performedPeriod as (end as string, start as string), performer as (display as string, reference as string)[], period as (end as string, start as string), prescription as (reference as string), presentedForm as (contentType as string, data as string)[], primarySource as boolean, priority as (coding as (code as string, system as string)[]), procedure as (procedureReference as (reference as string), sequence as short)[], provider as (display as string, reference as string), reasonCode as (coding as (code as integer, display as string, system as string)[], text as string)[], reasonReference as (reference as string)[], recorded as string, recordedDate as string, referral as (reference as string), requester as (display as string, reference as string), resourceType as string, result as (display as string, reference as string)[], serviceProvider as (display as string, reference as string), status as string, subject as (display as string, reference as string), supportingInfo as (category as (coding as (code as string, system as string)[]), sequence as short, valueReference as (reference as string))[], target as (reference as string)[], telecom as (system as string, use as string, value as string)[], text as (div as string, status as string), total as string, type as string, use as string, vaccineCode as (coding as (code as short, display as string, system as string)[], text as string), valueCodeableConcept as (coding as (code as integer, display as string, system as string)[], text as string), valueQuantity as (code as string, system as string, unit as string, value as double), verificationStatus as (coding as (code as string, system as string)[])))[],",
+				"          resourceType as string,",
+				"          type as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'singleDocument',",
+				"     wildcardPaths:[(concat('source_jsonfile/', $fileName))]) ~> srclandingjson",
+				"srclandingjson foldDown(unroll(entry),",
+				"     mapColumn(",
+				"          entry,",
+				"          resourceType,",
+				"          type",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flattenentry",
+				"flattenentry filter(entry.resource.resourceType == 'Patient') ~> filterpatient",
+				"filterpatient select(mapColumn(",
+				"          {patient_id } = entry.resource.id,",
+				"          gender = entry.resource.gender,",
+				"          birth_date = entry.resource.birthDate",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectpatient",
+				"selectpatient derive(birth_date = birth_date,",
+				"          age = floor(monthsBetween(currentDate(), birth_date) / 12)) ~> derivepatientage",
+				"derivepatientage derive(age_band = case(     age < 18, '0-17',     age < 35, '18-34',     age < 50, '35-49',     age < 65, '50-64',     '65+' )) ~> derivepatientageband",
+				"flattenentry filter(entry.resource.resourceType == 'Claim') ~> filterclaim",
+				"filterclaim select(mapColumn(",
+				"          patient_reference = entry.resource.patient.reference,",
+				"          insurer = entry.resource.insurance[1].coverage.display,",
+				"          claim_date = entry.resource.billablePeriod.start,",
+				"          total = entry.resource.total,",
+				"          claim_id = entry.resource.id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectclaim",
+				"selectclaim derive(patient_id = replace(patient_reference,'urn:uuid:',''),",
+				"          billed_amount = toDecimal(\r",
+				"    regexExtract(\r",
+				"        toString(total),\r",
+				"        '\"value\":([0-9.]+)',\r",
+				"        1\r",
+				"    ),\r",
+				"    10,\r",
+				"    2\r",
+				"),",
+				"          claim_id = claim_id) ~> derivedClaim",
+				"derivepatientageband, derivedClaim join({patient_id } == patient_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinpatientclaim",
+				"joinpatientclaim derive(insurance_tier = case(     in(['Humana','UnitedHealthcare','Aetna'], insurer), 'Premium',     in(['Medicare','Medicaid'], insurer), 'Government',     isNull(insurer), 'Unknown',     'Standard' ),",
+				"          claim_date = toDate(left(claim_date,10),'yyyy-MM-dd')) ~> deriveinsurancetier",
+				"flattenentry filter(entry.resource.resourceType == 'ExplanationOfBenefit') ~> filterEob",
+				"filterEob select(mapColumn(",
+				"          paid_amount = entry.resource.payment.amount.value,",
+				"          claim_reference = entry.resource.claim.reference",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 derive(claim_id = replace(claim_reference,'urn:uuid:','')) ~> derivedEob",
+				"derivedClaim, derivedEob join(derivedClaim@claim_id == derivedEob@claim_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"deriveinsurancetier sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          {patient_id },",
+				"          gender,",
+				"          birth_date,",
+				"          age,",
+				"          age_band,",
+				"          insurer,",
+				"          claim_date,",
+				"          insurance_tier",
+				"     )) ~> sinkpatientcsv",
+				"join1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          patient_reference,",
+				"          insurer,",
+				"          claim_date,",
+				"          total,",
+				"          claim_id = derivedClaim@claim_id,",
+				"          patient_id,",
+				"          billed_amount,",
+				"          paid_amount,",
+				"          claim_reference,",
+				"          claim_id = derivedEob@claim_id",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

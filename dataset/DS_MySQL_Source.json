@@ -1,0 +1,16 @@
+{
+	"name": "DS_MySQL_Source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LocalMySQL_LinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "MySqlTable",
+		"schema": [],
+		"typeProperties": {
+			"tableName": "`mup_dpr_report_mysql`"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

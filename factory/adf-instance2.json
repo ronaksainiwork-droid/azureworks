@@ -1,0 +1,15 @@
+{
+	"name": "adf-instance2",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "188612e1-4bf8-41f7-9506-3bc3d3595c6f",
+		"tenantId": "0ef23053-cd69-425a-a285-f386e379faba"
+	}
+}

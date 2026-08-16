@@ -1,0 +1,21 @@
+{
+	"name": "DS_ADLS_Parquet_Sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_gen2_bigdata",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "external_f/landing/mup_dpr_parquet_tomysql",
+				"fileSystem": "raw-folder"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,33 @@
+{
+	"name": "pipeline2",
+	"properties": {
+		"activities": [
+			{
+				"name": "Notebook1",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/ronaksaini242004@gmail.com/widget_paramtere 2026-08-14 10:56:33",
+					"baseParameters": {
+						"file_path": "test.csv"
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricksconnection",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-08-14T05:45:32Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
