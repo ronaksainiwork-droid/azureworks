@@ -15,14 +15,6 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "dim_patient_sink_csv",
-						"type": "DatasetReference"
-					},
-					"name": "sinkpatientcsv",
-					"description": "Export data to ds_csv_sink_1_patient"
-				},
-				{
-					"dataset": {
 						"referenceName": "ds_csv_landing",
 						"type": "DatasetReference"
 					},
@@ -74,6 +66,12 @@
 				},
 				{
 					"name": "join1"
+				},
+				{
+					"name": "aggregatelatest"
+				},
+				{
+					"name": "join2"
 				}
 			],
 			"scriptLines": [
@@ -92,9 +90,8 @@
 				"     wildcardPaths:[(concat('source_jsonfile/', $fileName))]) ~> srclandingjson",
 				"srclandingjson foldDown(unroll(entry),",
 				"     mapColumn(",
-				"          entry,",
-				"          resourceType,",
-				"          type",
+				"          entry = entry,",
+				"          resourceType = entry.resource.resourceType",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> flattenentry",
@@ -113,9 +110,10 @@
 				"filterclaim select(mapColumn(",
 				"          patient_reference = entry.resource.patient.reference,",
 				"          insurer = entry.resource.insurance[1].coverage.display,",
-				"          claim_date = entry.resource.billablePeriod.start,",
+				"          claim_date = entry.resource.created,",
 				"          total = entry.resource.total,",
-				"          claim_id = entry.resource.id",
+				"          claim_id = entry.resource.id,",
+				"          status = entry.resource.status",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectclaim",
@@ -129,14 +127,15 @@
 				"    10,\r",
 				"    2\r",
 				"),",
-				"          claim_id = claim_id) ~> derivedClaim",
-				"derivepatientageband, derivedClaim join({patient_id } == patient_id,",
+				"          claim_id = claim_id,",
+				"          claim_decision = case(     status == 'active', 'APPROVED',     status == 'cancelled', 'DENIED',     'UNKNOWN' ),",
+				"          claim_date = toTimestamp(substring(claim_date, 1, 19), 'yyyy-MM-dd\\'T\\'HH:mm:ss')) ~> derivedClaim",
+				"derivepatientageband, join2 join({patient_id } == derivedClaim@patient_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinpatientclaim",
-				"joinpatientclaim derive(insurance_tier = case(     in(['Humana','UnitedHealthcare','Aetna'], insurer), 'Premium',     in(['Medicare','Medicaid'], insurer), 'Government',     isNull(insurer), 'Unknown',     'Standard' ),",
-				"          claim_date = toDate(left(claim_date,10),'yyyy-MM-dd')) ~> deriveinsurancetier",
+				"joinpatientclaim derive(insurance_tier = case(     in(['Humana','UnitedHealthcare','Aetna'], selectclaim@insurer), 'Premium',     in(['Medicare','Medicaid'], selectclaim@insurer), 'Government',     isNull(selectclaim@insurer), 'Unknown',     'Standard' )) ~> deriveinsurancetier",
 				"flattenentry filter(entry.resource.resourceType == 'ExplanationOfBenefit') ~> filterEob",
 				"filterEob select(mapColumn(",
 				"          paid_amount = entry.resource.payment.amount.value,",
@@ -150,6 +149,15 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join1",
+				"join1 aggregate(groupBy(patient_id),",
+				"     claim_date = max(claim_date),",
+				"          insurer = first(insurer)) ~> aggregatelatest",
+				"join1, aggregatelatest join(derivedClaim@patient_id == aggregatelatest@patient_id",
+				"     && derivedClaim@claim_date == aggregatelatest@claim_date,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join2",
 				"deriveinsurancetier sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     umask: 0022,",
@@ -158,33 +166,18 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
-				"          {patient_id },",
+				"          patient_id = aggregatelatest@patient_id,",
 				"          gender,",
 				"          birth_date,",
 				"          age,",
 				"          age_band,",
+				"          claim_id = derivedEob@claim_id,",
 				"          insurer,",
-				"          claim_date,",
-				"          insurance_tier",
-				"     )) ~> sinkpatientcsv",
-				"join1 sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     umask: 0022,",
-				"     preCommands: [],",
-				"     postCommands: [],",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     mapColumn(",
-				"          patient_reference,",
-				"          insurer,",
-				"          claim_date,",
-				"          total,",
-				"          claim_id = derivedClaim@claim_id,",
-				"          patient_id,",
+				"          claim_date = aggregatelatest@claim_date,",
 				"          billed_amount,",
 				"          paid_amount,",
-				"          claim_reference,",
-				"          claim_id = derivedEob@claim_id",
+				"          claim_decision,",
+				"          insurance_tier",
 				"     )) ~> sink1"
 			]
 		}
