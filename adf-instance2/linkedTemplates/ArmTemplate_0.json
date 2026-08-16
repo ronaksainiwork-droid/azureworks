@@ -1,0 +1,982 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-instance2"
+		},
+		"AzureDatabricksconnection_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'AzureDatabricksconnection'"
+		},
+		"ls_adls_gen2_bigdata_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_adls_gen2_bigdata'"
+		},
+		"LocalMySQL_LinkedService_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'LocalMySQL_LinkedService'"
+		},
+		"ls_adls_gen2_bigdata_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://bigdatastoragedata.dfs.core.windows.net/"
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "localhost"
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "healthcare_db"
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "root"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricksconnection')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405606687299423.3.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricksconnection_accessToken')]"
+					},
+					"newClusterNodeType": "Standard_DS3_v2",
+					"newClusterNumOfWorker": "1",
+					"newClusterSparkEnvVars": {
+						"PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+					},
+					"newClusterVersion": "17.3.x-scala2.13",
+					"clusterOption": "Fixed",
+					"newClusterInitScripts": []
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adls_gen2_bigdata')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "bigdatastorage wali storage account se connect hai ",
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_adls_gen2_bigdata_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_adls_gen2_bigdata_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/IRlocalMySQL2')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Notebook1",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Users/ronaksaini242004@gmail.com/widget_paramtere 2026-08-14 10:56:33",
+							"baseParameters": {
+								"file_path": "test.csv"
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricksconnection",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-08-14T05:45:32Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricksconnection')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_Parquet_Sink')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_gen2_bigdata",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "external_f/landing/mup_dpr_parquet_tomysql",
+						"fileSystem": "raw-folder"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_gen2_bigdata')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dim_patient_sink_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_gen2_bigdata",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "external_f/landing/dim patient",
+						"fileSystem": "raw-folder"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_gen2_bigdata')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_csv_landing')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_gen2_bigdata",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "external_f/landing/json_to_csv_files",
+						"fileSystem": "raw-folder"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_gen2_bigdata')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_json_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_gen2_bigdata",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "source_jsonfile",
+						"fileSystem": "raw-folder"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"resourceType": {
+							"type": "string"
+						},
+						"type": {
+							"type": "string"
+						},
+						"entry": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"fullUrl": {
+										"type": "string"
+									},
+									"resource": {
+										"type": "object",
+										"properties": {
+											"resourceType": {
+												"type": "string"
+											},
+											"id": {
+												"type": "string"
+											},
+											"meta": {
+												"type": "object",
+												"properties": {
+													"profile": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"text": {
+												"type": "object",
+												"properties": {
+													"status": {
+														"type": "string"
+													},
+													"div": {
+														"type": "string"
+													}
+												}
+											},
+											"extension": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"url": {
+															"type": "string"
+														},
+														"extension": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"url": {
+																		"type": "string"
+																	},
+																	"valueCoding": {
+																		"type": "object",
+																		"properties": {
+																			"system": {
+																				"type": "string"
+																			},
+																			"code": {
+																				"type": "string"
+																			},
+																			"display": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											},
+											"identifier": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"system": {
+															"type": "string"
+														},
+														"value": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"name": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"use": {
+															"type": "string"
+														},
+														"family": {
+															"type": "string"
+														},
+														"given": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"prefix": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														}
+													}
+												}
+											},
+											"telecom": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"system": {
+															"type": "string"
+														},
+														"value": {
+															"type": "string"
+														},
+														"use": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"gender": {
+												"type": "string"
+											},
+											"birthDate": {
+												"type": "string"
+											},
+											"deceasedDateTime": {
+												"type": "string"
+											},
+											"address": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"extension": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"url": {
+																		"type": "string"
+																	},
+																	"extension": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"url": {
+																					"type": "string"
+																				},
+																				"valueDecimal": {
+																					"type": "number"
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														},
+														"line": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"city": {
+															"type": "string"
+														},
+														"state": {
+															"type": "string"
+														},
+														"postalCode": {
+															"type": "string"
+														},
+														"country": {
+															"type": "string"
+														}
+													}
+												}
+											},
+											"maritalStatus": {
+												"type": "object",
+												"properties": {
+													"coding": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"system": {
+																	"type": "string"
+																},
+																"code": {
+																	"type": "string"
+																},
+																"display": {
+																	"type": "string"
+																}
+															}
+														}
+													},
+													"text": {
+														"type": "string"
+													}
+												}
+											},
+											"multipleBirthBoolean": {
+												"type": "boolean"
+											},
+											"communication": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"language": {
+															"type": "object",
+															"properties": {
+																"coding": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"system": {
+																				"type": "string"
+																			},
+																			"code": {
+																				"type": "string"
+																			},
+																			"display": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																},
+																"text": {
+																	"type": "string"
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									"request": {
+										"type": "object",
+										"properties": {
+											"method": {
+												"type": "string"
+											},
+											"url": {
+												"type": "string"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_gen2_bigdata')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LocalMySQL_LinkedService')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "MySql",
+				"typeProperties": {
+					"server": "[parameters('LocalMySQL_LinkedService_properties_typeProperties_server')]",
+					"port": 3306,
+					"database": "[parameters('LocalMySQL_LinkedService_properties_typeProperties_database')]",
+					"username": "[parameters('LocalMySQL_LinkedService_properties_typeProperties_username')]",
+					"sslMode": 1,
+					"useSystemTrustStore": 0,
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('LocalMySQL_LinkedService_password')]"
+					},
+					"driverVersion": "v2"
+				},
+				"connectVia": {
+					"referenceName": "IRlocalMySQL2",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/IRlocalMySQL2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_MySQL_Source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LocalMySQL_LinkedService",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "MySqlTable",
+				"schema": [],
+				"typeProperties": {
+					"tableName": "`mup_dpr_report_mysql`"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LocalMySQL_LinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_json_source",
+								"type": "DatasetReference"
+							},
+							"name": "srclandingjson"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_csv_landing",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flattenentry"
+						},
+						{
+							"name": "filterpatient"
+						},
+						{
+							"name": "selectpatient",
+							"description": "Renaming filterpatient to selectpatient with columns 'patient_id , gender, birth_date'"
+						},
+						{
+							"name": "derivepatientage",
+							"description": "Creating/updating the columns 'patient_id , gender, birth_date, age'"
+						},
+						{
+							"name": "derivepatientageband",
+							"description": "Creating/updating the columns 'patient_id , gender, birth_date, age, age_band'"
+						},
+						{
+							"name": "filterclaim"
+						},
+						{
+							"name": "selectclaim"
+						},
+						{
+							"name": "derivedClaim"
+						},
+						{
+							"name": "joinpatientclaim"
+						},
+						{
+							"name": "deriveinsurancetier"
+						},
+						{
+							"name": "filterEob"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "derivedEob"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "aggregatelatest"
+						},
+						{
+							"name": "join2"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     fileName as string ('Abe604_Schmidt332_ccfc4db2-2026-7adb-3db0-33f3828140bb.json')",
+						"}",
+						"source(output(",
+						"          entry as (fullUrl as string, request as (method as string, url as string), resource as (abatementDateTime as string, activity as (detail as (code as (coding as (code as long, display as string, system as string)[], text as string), location as (display as string), status as string))[], address as (city as string, country as string, extension as (extension as (url as string, valueDecimal as double)[], url as string)[], line as string[], postalCode as short, state as string)[], addresses as (reference as string)[], agent as (onBehalfOf as (display as string, reference as string), type as (coding as (code as string, display as string, system as string)[], text as string), who as (display as string, reference as string))[], author as (display as string, reference as string)[], authoredOn as string, billablePeriod as (end as string, start as string), birthDate as date, careTeam as (provider as (reference as string), reference as string, role as (coding as (code as string, display as string, system as string)[]), sequence as boolean)[], category as (coding as (code as string, display as string, system as string)[], text as string)[], claim as (reference as string), class as (code as string, system as string), clinicalStatus as (coding as (code as string, system as string)[]), code as (coding as (code as string, display as string, system as string)[], text as string), communication as (language as (coding as (code as string, display as string, system as string)[], text as string))[], component as (code as (coding as (code as string, display as string, system as string)[], text as string), valueCodeableConcept as (coding as (code as string, display as string, system as string)[], text as string), valueQuantity as (code as string, system as string, unit as string, value as double), valueString as string)[], contained as (beneficiary as (reference as string), id as string, intent as string, payor as (display as string)[], performer as (reference as string)[], requester as (reference as string), resourceType as string, status as string, subject as (reference as string), type as (text as string))[], content as (attachment as (contentType as string, data as string), format as (code as string, display as string, system as string))[], context as (encounter as (reference as string)[], period as (end as string, start as string)), created as string, custodian as (display as string, reference as string), date as string, diagnosis as (diagnosisReference as (reference as string), sequence as short, type as (coding as (code as string, system as string)[])[])[], dosageInstruction as (additionalInstruction as (coding as (code as integer, display as string, system as string)[], text as string)[], asNeededBoolean as boolean, doseAndRate as (doseQuantity as (value as double), type as (coding as (code as string, display as string, system as string)[]))[], sequence as boolean, text as string, timing as (repeat as (frequency as short, period as double, periodUnit as string)))[], effectiveDateTime as string, encounter as (reference as string), extension as (extension as (url as string, valueCoding as (code as string, display as string, system as string), valueString as string)[], url as string, valueAddress as (city as string, country as string, state as string), valueCode as string, valueDecimal as double, valueString as string)[], facility as (display as string, reference as string), gender as string, id as string, identifier as (system as string, type as (coding as (code as string, display as string, system as string)[], text as string), use as string, value as string)[], insurance as (coverage as (display as string, reference as string), focal as boolean, sequence as boolean)[], insurer as (display as string), intent as string, issued as string, item as (adjudication as (amount as (currency as string, value as double), category as (coding as (code as string, display as string, system as string)[]))[], category as (coding as (code as boolean, display as string, system as string)[]), diagnosisSequence as short[], encounter as (reference as string)[], informationSequence as short[], locationCodeableConcept as (coding as (code as short, display as string, system as string)[]), net as (currency as string, value as double), procedureSequence as short[], productOrService as (coding as (code as long, display as string, system as string)[], text as string), sequence as short, servicedPeriod as (end as string, start as string))[], location as string, managingOrganization as (display as string, reference as string)[], maritalStatus as (coding as (code as string, display as string, system as string)[], text as string), medicationCodeableConcept as (coding as (code as integer, display as string, system as string)[], text as string), meta as (profile as string[]), multipleBirthBoolean as boolean, name as (family as string, given as string[], prefix as string[], use as string)[], occurrenceDateTime as string, onsetDateTime as string, outcome as string, participant as (individual as (display as string, reference as string), member as (display as string, reference as string), period as (end as string, start as string), role as (coding as (code as integer, display as string, system as string)[], text as string)[], type as (coding as (code as string, display as string, system as string)[], text as string)[])[], patient as (display as string, reference as string), payment as (amount as (currency as string, value as double)), performedPeriod as (end as string, start as string), performer as (display as string, reference as string)[], period as (end as string, start as string), prescription as (reference as string), presentedForm as (contentType as string, data as string)[], primarySource as boolean, priority as (coding as (code as string, system as string)[]), procedure as (procedureReference as (reference as string), sequence as short)[], provider as (display as string, reference as string), reasonCode as (coding as (code as integer, display as string, system as string)[], text as string)[], reasonReference as (reference as string)[], recorded as string, recordedDate as string, referral as (reference as string), requester as (display as string, reference as string), resourceType as string, result as (display as string, reference as string)[], serviceProvider as (display as string, reference as string), status as string, subject as (display as string, reference as string), supportingInfo as (category as (coding as (code as string, system as string)[]), sequence as short, valueReference as (reference as string))[], target as (reference as string)[], telecom as (system as string, use as string, value as string)[], text as (div as string, status as string), total as string, type as string, use as string, vaccineCode as (coding as (code as short, display as string, system as string)[], text as string), valueCodeableConcept as (coding as (code as integer, display as string, system as string)[], text as string), valueQuantity as (code as string, system as string, unit as string, value as double), verificationStatus as (coding as (code as string, system as string)[])))[],",
+						"          resourceType as string,",
+						"          type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     documentForm: 'singleDocument',",
+						"     wildcardPaths:[(concat('source_jsonfile/', $fileName))]) ~> srclandingjson",
+						"srclandingjson foldDown(unroll(entry),",
+						"     mapColumn(",
+						"          entry,",
+						"          resourceType = entry.resource.resourceType",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flattenentry",
+						"flattenentry filter(entry.resource.resourceType == 'Patient') ~> filterpatient",
+						"filterpatient select(mapColumn(",
+						"          {patient_id } = entry.resource.id,",
+						"          gender = entry.resource.gender,",
+						"          birth_date = entry.resource.birthDate",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectpatient",
+						"selectpatient derive(birth_date = birth_date,",
+						"          age = floor(monthsBetween(currentDate(), birth_date) / 12)) ~> derivepatientage",
+						"derivepatientage derive(age_band = case(     age < 18, '0-17',     age < 35, '18-34',     age < 50, '35-49',     age < 65, '50-64',     '65+' )) ~> derivepatientageband",
+						"flattenentry filter(entry.resource.resourceType == 'Claim') ~> filterclaim",
+						"filterclaim select(mapColumn(",
+						"          patient_reference = entry.resource.patient.reference,",
+						"          insurer = entry.resource.insurance[1].coverage.display,",
+						"          claim_date = entry.resource.created,",
+						"          total = entry.resource.total,",
+						"          claim_id = entry.resource.id,",
+						"          status = entry.resource.status",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectclaim",
+						"selectclaim derive(patient_id = replace(patient_reference,'urn:uuid:',''),",
+						"          billed_amount = toDecimal(\r",
+						"    regexExtract(\r",
+						"        toString(total),\r",
+						"        '\"value\":([0-9.]+)',\r",
+						"        1\r",
+						"    ),\r",
+						"    10,\r",
+						"    2\r",
+						"),",
+						"          claim_id = claim_id,",
+						"          claim_decision = case(     status == 'active', 'APPROVED',     status == 'cancelled', 'DENIED',     'UNKNOWN' ),",
+						"          claim_date = toTimestamp(substring(claim_date, 1, 19), 'yyyy-MM-dd\\'T\\'HH:mm:ss')) ~> derivedClaim",
+						"derivepatientageband, join2 join({patient_id } == derivedClaim@patient_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinpatientclaim",
+						"joinpatientclaim derive(insurance_tier = case(     in(['Humana','UnitedHealthcare','Aetna'], selectclaim@insurer), 'Premium',     in(['Medicare','Medicaid'], selectclaim@insurer), 'Government',     isNull(selectclaim@insurer), 'Unknown',     'Standard' )) ~> deriveinsurancetier",
+						"flattenentry filter(entry.resource.resourceType == 'ExplanationOfBenefit') ~> filterEob",
+						"filterEob select(mapColumn(",
+						"          paid_amount = entry.resource.payment.amount.value,",
+						"          claim_reference = entry.resource.claim.reference",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 derive(claim_id = replace(claim_reference,'urn:uuid:','')) ~> derivedEob",
+						"derivedClaim, derivedEob join(derivedClaim@claim_id == derivedEob@claim_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 aggregate(groupBy(patient_id),",
+						"     claim_date = max(claim_date),",
+						"          insurer = first(insurer)) ~> aggregatelatest",
+						"join1, aggregatelatest join(derivedClaim@patient_id == aggregatelatest@patient_id",
+						"     && derivedClaim@claim_date == aggregatelatest@claim_date,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join2",
+						"deriveinsurancetier sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          patient_id = aggregatelatest@patient_id,",
+						"          gender,",
+						"          birth_date,",
+						"          age,",
+						"          age_band,",
+						"          claim_id = derivedEob@claim_id,",
+						"          insurer,",
+						"          claim_date = aggregatelatest@claim_date,",
+						"          billed_amount,",
+						"          paid_amount,",
+						"          claim_decision,",
+						"          insurance_tier",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_json_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_csv_landing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MySQL_to_ADLS_mup')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "MySqlSource"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_MySQL_Source",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_ADLS_Parquet_Sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-07-24T07:10:54Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_MySQL_Source')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"srclandingjson": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-07-23T07:20:29Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_json_to_csv_foreach')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_json_source",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "JsonReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Metadata1').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Data flow1",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "dataflow1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"fileName": {
+													"value": "'@{item().name}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"srclandingjson": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "Fine"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-07-23T09:43:47Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_json_source')]",
+				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
+			]
+		}
+	]
+}

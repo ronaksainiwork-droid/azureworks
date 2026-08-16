@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-instance2"
+		},
+		"AzureDatabricksconnection_accessToken": {
+			"value": ""
+		},
+		"LocalMySQL_LinkedService_password": {
+			"value": ""
+		},
+		"ls_adls_gen2_bigdata_accountKey": {
+			"value": ""
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_server": {
+			"value": "localhost"
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_database": {
+			"value": "healthcare_db"
+		},
+		"LocalMySQL_LinkedService_properties_typeProperties_username": {
+			"value": "root"
+		},
+		"ls_adls_gen2_bigdata_properties_typeProperties_url": {
+			"value": "https://bigdatastoragedata.dfs.core.windows.net/"
+		}
+	}
+}
